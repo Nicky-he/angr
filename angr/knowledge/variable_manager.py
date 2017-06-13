@@ -327,7 +327,7 @@ class VariableManager(object):
         """
         Get a list of all references to the given variable.
 
-        :param simuvex.SimVariable variable: The variable.
+        :param SimVariable variable:         The variable.
         :param bool same_name:               Whether to include all variables with the same variable name, or just
                                              based on the variable identifier.
         :return:                All references to the variable.

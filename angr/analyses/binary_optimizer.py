@@ -52,8 +52,8 @@ class RegisterReallocation(object):
         """
         Constructor.
 
-        :param simuvex.SimStackVariable stack_variable:
-        :param simuvex.SimRegisterVariable register_variable:
+        :param SimStackVariable stack_variable:
+        :param SimRegisterVariable register_variable:
         :param list stack_variable_sources:
         :param list stack_variable_consumers:
         :param int prologue_addr:

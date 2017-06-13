@@ -25,7 +25,7 @@ default_engines = defaultdict(global_default)
 
 def register_default_engine(loader_backend, engine, arch='any'):
     """
-    Register the default SimuVEX engine to be used with a given CLE backend.
+    Register the default execution engine to be used with a given CLE backend.
     Usually this is the SimEngineVEX, but if you're operating on something that isn't
     going to be lifted to VEX, you'll need to make sure the desired engine is registered here.
 
@@ -613,7 +613,7 @@ class Hook(object):
     An instance of this class may be passed to `angr.Project.hook` along with the address at which
     to hook.
 
-    More specifically, a hook is a wrapper for a SimProcedure, a simuvex object that contains a lot
+    More specifically, a hook is a wrapper for a SimProcedure, an object that contains a lot
     of logic for how to mutate a state in common ways. The SimProcedure base class is subclassed
     to produce a SimProcedure that may be used for hooking. If the SimProcedure class is too heavy
     for your use case, there is a class method `wrap` on this class that can be used to wrap a
