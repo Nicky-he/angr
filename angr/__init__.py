@@ -34,6 +34,8 @@ from .state_plugins.inspect import BP_BEFORE, BP_AFTER, BP_BOTH, BP_IPDB, BP_IPY
 
 # other stuff
 
+from .state_plugins.inspect import BP
+
 from .project import *
 from .path import *
 from .errors import *

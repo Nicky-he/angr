@@ -4,7 +4,7 @@ from collections import defaultdict
 from itertools import count
 
 from claripy.utils.orderedset import OrderedSet
-from simuvex.s_variable import SimStackVariable, SimMemoryVariable, SimRegisterVariable, SimMemoryVariablePhi, \
+from ..sim_variable import SimStackVariable, SimMemoryVariable, SimRegisterVariable, SimMemoryVariablePhi, \
     SimStackVariablePhi, SimRegisterVariablePhi
 
 from .keyed_region import KeyedRegion

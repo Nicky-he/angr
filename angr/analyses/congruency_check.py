@@ -1,7 +1,8 @@
 import logging
 
 import claripy
-import simuvex
+
+from .. import engines
 from ..analysis import Analysis, register_analysis
 
 l = logging.getLogger("angr.analyses.congruency_check")
@@ -329,8 +330,8 @@ class CongruencyCheck(Analysis):
 
 		# make sure the flags are the same
 		if sl.arch.name in ("AMD64", "X86", "ARM", "AARCH64"):
-			n_flags = simuvex.engines.vex.ccall._get_flags(sr)[0].canonicalize(var_map=n_map, counter=n_counter)[-1]
-			u_flags = simuvex.engines.vex.ccall._get_flags(sl)[0].canonicalize(var_map=u_map, counter=u_counter)[-1]
+			n_flags = engines.vex.ccall._get_flags(sr)[0].canonicalize(var_map=n_map, counter=n_counter)[-1]
+			u_flags = engines.vex.ccall._get_flags(sl)[0].canonicalize(var_map=u_map, counter=u_counter)[-1]
 			if n_flags is not u_flags and sl.se.simplify(n_flags) is not sr.se.simplify(u_flags):
 				self._report_incongruency("Different flags!")
 				return False
