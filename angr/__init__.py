@@ -27,6 +27,12 @@ while True:
 del sys, i, module
 
 from . import sim_options
+options = sim_options  # alias
+
+# enums
+from .state_plugins.inspect import BP_BEFORE, BP_AFTER, BP_BOTH, BP_IPDB, BP_IPYTHON
+
+# other stuff
 
 from .project import *
 from .path import *
@@ -47,4 +53,3 @@ from . import exploration_techniques
 from .sim_state import SimState
 from .engines import SimEngineVEX
 from .calling_conventions import DefaultCC
-from . import sim_options as options

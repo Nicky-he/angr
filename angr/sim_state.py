@@ -755,5 +755,5 @@ from .state_plugins.fast_memory import SimFastMemory
 from .state_plugins.abstract_memory import SimAbstractMemory
 from .errors import SimMergeError, SimValueError, SimStateError
 from .state_plugins.inspect import BP_AFTER, BP_BEFORE
-from .s_action import SimActionConstraint
+from .state_plugins.sim_action import SimActionConstraint
 from . import sim_options as o
