@@ -22,6 +22,8 @@ while True:
 
 del sys, i, module
 
+from .procedures import SIM_PROCEDURES, SimProcedures
+
 from .project import *
 from .path import *
 from .errors import *
@@ -43,4 +45,3 @@ from .engines import SimEngineVEX
 from .calling_conventions import DefaultCC
 from .procedures.sim_procedure import SimProcedure
 from . import sim_options as options
-from .procedures import SIM_PROCEDURES, SimProcedures
