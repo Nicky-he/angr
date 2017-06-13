@@ -4,7 +4,7 @@ import string
 import claripy
 import logging
 
-from .. import sim_type, SIM_PROCEDURES
+from .. import sim_type
 
 l = logging.getLogger("angr.misc.format_parser")
 
@@ -388,6 +388,7 @@ class FormatParser(SimProcedure):
         Return the result of invoking the atoi simprocedure on `str_addr`.
         """
 
+        from .. import SIM_PROCEDURES
         strtol = SIM_PROCEDURES['libc.so.6']['strtol']
 
         return strtol.strtol_inner(str_addr, self.state, region, base, True, read_length=read_length)
@@ -398,6 +399,7 @@ class FormatParser(SimProcedure):
         Return the result of invoking the strlen simprocedure on `str_addr`.
         """
 
+        from .. import SIM_PROCEDURES
         strlen = SIM_PROCEDURES['libc.so.6']['strlen']
 
         return self.inline_call(strlen, str_addr).ret_expr
