@@ -4,7 +4,7 @@ import logging
 
 from angr import SimState
 
-l = logging.getLogger('simuvex.syscalls.mmap')
+l = logging.getLogger('angr.tests.syscalls.mmap')
 
 
 def test_mmap_base_copy():
