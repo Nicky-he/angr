@@ -3,7 +3,7 @@ import logging
 import claripy
 
 from ..storage.memory import SimMemory
-from ..s_errors import SimFastMemoryError
+from ..errors import SimFastMemoryError
 
 l = logging.getLogger("simuvex.plugins.fast_memory")
 l.setLevel(logging.DEBUG)
@@ -228,4 +228,4 @@ class SimFastMemory(SimMemory):
 
         return changes
 
-from .. import s_options as options
+from .. import sim_options as options
