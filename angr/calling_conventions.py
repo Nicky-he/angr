@@ -6,7 +6,7 @@ from archinfo import ArchX86, ArchAMD64, ArchARM, ArchAArch64, ArchMIPS32, ArchM
 from . import sim_type
 from .state_plugins.sim_action_object import SimActionObject
 
-l = logging.getLogger("simuvex.s_cc")
+l = logging.getLogger("angr.calling_conventions")
 
 
 class PointerWrapper(object):
