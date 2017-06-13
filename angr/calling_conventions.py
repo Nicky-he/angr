@@ -3,7 +3,7 @@ import logging
 import claripy
 from archinfo import ArchX86, ArchAMD64, ArchARM, ArchAArch64, ArchMIPS32, ArchMIPS64, ArchPPC32, ArchPPC64
 
-# from . import sim_type
+from . import sim_type
 from .state_plugins.sim_action_object import SimActionObject
 
 l = logging.getLogger("angr.calling_conventions")
