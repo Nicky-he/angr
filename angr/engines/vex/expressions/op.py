@@ -28,7 +28,7 @@ class SimIRExpr_Op(SimIRExpr):
 
         except UnsupportedIROpError as e:
             if o.BYPASS_UNSUPPORTED_IROP in self.state.options:
-                self.state.log.add_event('resilience', resilience_type='irop', op=self._expr.op, message='unsupported IROp')
+                self.state.history.add_event('resilience', resilience_type='irop', op=self._expr.op, message='unsupported IROp')
                 if o.UNSUPPORTED_BYPASS_ZERO_DEFAULT in self.state.options:
                     self.expr = self.state.se.BVV(0, self.size_bits())
                 else:

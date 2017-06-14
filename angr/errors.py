@@ -13,7 +13,7 @@ class AngrExitError(AngrError):
 class AngrPathError(AngrError):
     pass
 
-class AngrPathGroupError(AngrError):
+class SimContextError(AngrError):
     pass
 
 class AngrInvalidArgumentError(AngrError):
@@ -23,9 +23,6 @@ class AngrSurveyorError(AngrError):
     pass
 
 class AngrAnalysisError(AngrError):
-    pass
-
-class PathUnreachableError(AngrError):
     pass
 
 class AngrBladeError(AngrError):

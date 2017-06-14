@@ -298,7 +298,7 @@ class SimOS(object):
 
         if not self.syscall_table.supports(n):
             if o.BYPASS_UNSUPPORTED_SYSCALL in state.options:
-                state.log.add_event('resilience', resilience_type='syscall', syscall=n, message='unsupported syscall')
+                state.history.add_event('resilience', resilience_type='syscall', syscall=n, message='unsupported syscall')
 
                 syscall = self.syscall_table.unknown_syscall if n not in self.syscall_table else self.syscall_table[n]
 
@@ -904,7 +904,7 @@ class SimCGC(SimOS):
                 str_to_write = state.posix.files[1].content.load(state.posix.files[1].pos, size)
                 a = SimActionData(state, 'file_1_0', 'write', addr=claripy.BVV(state.posix.files[1].pos, state.arch.bits), data=str_to_write, size=size)
                 state.posix.write(stdout, str_to_write, size)
-                state.log.add_action(a)
+                state.history.add_action(a)
 
         else:
             # Set CGC-specific variables

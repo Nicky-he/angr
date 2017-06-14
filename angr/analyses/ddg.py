@@ -577,7 +577,7 @@ class DDG(Analysis):
         # Make a copy of live_defs
         live_defs = live_defs.copy()
 
-        action_list = list(state.log.actions)
+        action_list = list(state.history.last_actions)
 
         # Since all temporary variables are local, we simply track them in a local dict
         temp_defs = { }

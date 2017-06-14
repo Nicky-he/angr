@@ -1,21 +1,26 @@
 import logging
-import weakref
 import claripy
 
-from .state_plugins.sim_action import SimAction
-from . import sim_options as o
+l = logging.getLogger("angr.state_plugins.history")
 
-l = logging.getLogger("angr.path_history")
-
-class PathHistory(object):
+from .plugin import SimStatePlugin
+class SimStateHistory(SimStatePlugin):
     """
     This class keeps track of historically-relevant information for paths.
     """
 
-    __slots__ = ('_parent', 'merged_from', 'merge_conditions', 'length', 'extra_length', '_addrs', '_runstr', '_target', '_guard', '_jumpkind', '_events', '_jump_source', '_jump_avoidable', '_all_constraints', '_fresh_constraints', '_satisfiable', '_state_strong_ref', '_state_weak_ref', '__weakref__')
+    __slots__ = (
+        'parent', 'merged_from', 'merge_conditions', 'length',
+        'extra_length', '_addrs', '_runstr', '_target', '_guard',
+        '_jumpkind', '_events', '_jump_source', '_jump_avoidable',
+        '_all_constraints', '_fresh_constraints', '_satisfiable',
+        '_state_strong_ref', '_state_weak_ref', '__weakref__'
+    )
 
     def __init__(self, parent=None):
-        self._parent = parent
+        SimStatePlugin.__init__(self)
+
+        self.parent = parent
         self.merged_from = [ ]
         self.merge_conditions = [ ]
         self._runstr = None
@@ -30,18 +35,24 @@ class PathHistory(object):
         self.length = 0 if parent is None else parent.length + 1
         self.extra_length = 0 if parent is None else parent.extra_length
 
+        self.executed_block_count = 0 # the number of blocks that was executed here
+        self.executed_syscall_count = 0 # the number of system calls that was executed here
+        self.executed_instruction_count = -1 # the number of instructions that was executed
+
         # satness stuff
         self._all_constraints = ()
         self._fresh_constraints = ()
         self._satisfiable = None
 
-        # the state itself
-        self._state_weak_ref = None
-        self._state_strong_ref = None
+    def merge(self, others, merge_conditions, common_ancestor=None):
+        raise Exception('TODO')
+
+    def widen(self, others):
+        raise Exception('TODO')
 
     def copy(self):
-        c = PathHistory()
-        c._parent = self._parent
+        c = SimStateHistory()
+        c.parent = self.parent
         c.merged_from = list(self.merged_from)
         c.merge_conditions = list(self.merge_conditions)
         c._runstr = self._runstr
@@ -59,8 +70,10 @@ class PathHistory(object):
         c._all_constraints = list(self._all_constraints)
         c._fresh_constraints = list(self._fresh_constraints)
         c._satisfiable = self._satisfiable
-        c._state_weak_ref = self._state_weak_ref
-        c._state_strong_ref = self._state_strong_ref
+
+        c.executed_block_count = self.executed_block_count
+        c.executed_syscall_count = self.executed_syscall_count
+        c.executed_instruction_count = self.executed_instruction_count
 
         return c
 
@@ -73,80 +86,55 @@ class PathHistory(object):
     def __setstate__(self, state):
         for k,v in state:
             setattr(self, k, v)
-        self._state_weak_ref = None
 
-    def _record_state(self, state, strong_reference=True):
-        self._jumpkind = state.scratch.jumpkind
-        self._jump_source = state.scratch.source
-        self._jump_avoidable = state.scratch.avoidable
-        self._target = state.scratch.target
-        self._guard = state.scratch.guard
-
-        if state.scratch.bbl_addr_list is not None:
-            self._addrs = state.scratch.bbl_addr_list
-        elif state.scratch.bbl_addr is not None:
-            self._addrs = [ state.scratch.bbl_addr ]
-        else:
-            # state.scratch.bbl_addr may not be initialized as final states from the "flat_successors" list. We need to get
-            # the value from _target in that case.
-            if self.addr is None and not self._target.symbolic:
-                self._addrs = [ self._target._model_concrete.value ]
-            else:
-                # FIXME: redesign so this does not happen
-                l.warning("Encountered a path to a SimProcedure with a symbolic target address.")
-
-        if o.UNICORN in state.options:
-            self.extra_length += state.scratch.executed_block_count - 1
-
-        if o.TRACK_ACTION_HISTORY in state.options:
-            self._events = state.log.events
-
-        # record constraints, added constraints, and satisfiability
-        self._all_constraints = state.se.constraints
-        self._fresh_constraints = state.log.fresh_constraints
-
-        if isinstance(state.se._solver, claripy.frontend_mixins.SatCacheMixin):
-            self._satisfiable = state.se._solver._cached_satness
-        else:
-            self._satisfiable = None
-
-        # record the state as a weak reference
-        self._state_weak_ref = weakref.ref(state)
-
-        # and as a strong ref
-        if strong_reference:
-            self._state_strong_ref = state
-
-    def _record_run(self, run):
-        self._runstr = str(run)
-
-    @property
-    def state(self):
-        return (
-            self._state_strong_ref if self._state_strong_ref is not None else
-            self._state_weak_ref() if self._state_weak_ref is not None else
-            None
-        )
+    #def _record_state(self, state, strong_reference=True):
+    #   self._jumpkind = state.scratch.jumpkind
+    #   self._jump_source = state.scratch.source
+    #   self._jump_avoidable = state.scratch.avoidable
+    #   self._target = state.scratch.target
+    #   self._guard = state.scratch.guard
+    #
+    #   if state.scratch.bbl_addr_list is not None:
+    #       self._addrs = state.scratch.bbl_addr_list
+    #   elif state.scratch.bbl_addr is not None:
+    #       self._addrs = [ state.scratch.bbl_addr ]
+    #   else:
+    #       # state.scratch.bbl_addr may not be initialized as final states from the "flat_successors" list. We need to get
+    #       # the value from _target in that case.
+    #       if self.addr is None and not self._target.symbolic:
+    #           self._addrs = [ self._target._model_concrete.value ]
+    #       else:
+    #           # FIXME: redesign so this does not happen
+    #           l.warning("Encountered a path to a SimProcedure with a symbolic target address.")
+    #
+    #   if o.UNICORN in state.options:
+    #       self.extra_length += state.scratch.executed_block_count - 1
+    #
+    #   if o.TRACK_ACTION_HISTORY in state.options:
+    #       self._events = state.history.events
+    #
+    #   # record constraints, added constraints, and satisfiability
+    #   self._all_constraints = state.se.constraints
+    #   self._fresh_constraints = state.history.fresh_constraints
+    #
+    #   if isinstance(state.se._solver, claripy.frontend_mixins.SatCacheMixin):
+    #       self._satisfiable = state.se._solver._cached_satness
+    #   else:
+    #       self._satisfiable = None
+    #
+    #   # record the state as a weak reference
+    #   self._state_weak_ref = weakref.ref(state)
+    #
+    #   # and as a strong ref
+    #   if strong_reference:
+    #       self._state_strong_ref = state
 
     def demote(self):
         """
         Demotes this PathHistory node, causing it to convert references to the state
         to weakrefs.
         """
-        self._state_strong_ref = None
-
-    #
-    # Some GC-dependent pass-throughts to the state
-    #
-
-    @property
-    def events(self):
-        if self._events is not None:
-            return self._events
-        elif self.state is not None:
-            return self.state.log.events
-        else:
-            return ()
+        print "TODO: demote", self
 
     def reachable(self):
         if self._satisfiable is not None:
@@ -160,17 +148,80 @@ class PathHistory(object):
 
         return self._satisfiable
 
+    #
+    # Log handling
+    #
+
+    def add_event(self, event_type, **kwargs):
+        new_event = SimEvent(self.state, event_type, **kwargs)
+        self._events.append(new_event)
+
+    def add_action(self, action):
+        self._events.append(action)
+
+    def extend_actions(self, new_actions):
+        self._events.extend(new_actions)
+
+    #
+    # Convenient accessors
+    #
+
+    @property
+    def last_events(self):
+        return ( ev for ev in self._events )
+    @property
+    def last_actions(self):
+        return ( ev for ev in self.last_events if isinstance(ev, SimAction) )
+    @property
+    def last_jumpkind(self):
+        return self._jumpkind
+    @property
+    def last_guard(self):
+        return self._guard
+    @property
+    def last_target(self):
+        return self._target
+    @property
+    def last_description(self):
+        return self._runstr
+    @property
+    def last_addr(self):
+        return self._addrs[0]
+    @last_addr.setter
+    def last_addr(self, v):
+        self._addrs = [ v ]
+    @property
+    def last_addrs(self):
+        return self._addrs
+
+    @property
+    def parents(self):
+        return HistoryIter(self)
+    @property
+    def events(self):
+        return EventIter(self)
     @property
     def actions(self):
-        return [ ev for ev in self.events if isinstance(ev, SimAction) ]
-
+        return ActionIter(self)
     @property
-    def addr(self):
-        return self._addrs[0]
+    def jumpkinds(self):
+        return JumpkindIter(self)
+    @property
+    def guards(self):
+        return GuardIter(self)
+    @property
+    def targets(self):
+        return TargetIter(self)
+    @property
+    def descriptions(self):
+        return RunstrIter(self)
+    @property
+    def addrs(self):
+        return AddrIter(self)
 
-    @addr.setter
-    def addr(self, v):
-        self._addrs = [ v ]
+    #
+    # Merging support
+    #
 
     def closest_common_ancestor(self, other):
         """
@@ -223,7 +274,7 @@ class PathHistory(object):
         cur = self
         while cur is not other and cur is not None:
             constraints.extend(cur._fresh_constraints)
-            cur = cur._parent
+            cur = cur.parent
         return constraints
 
 class TreeIter(object):
@@ -235,7 +286,7 @@ class TreeIter(object):
         n = self._start
         while n is not self._end:
             yield n
-            n = n._parent
+            n = n.parent
 
     def __iter__(self):
         for i in self.hardcopy:
@@ -324,3 +375,7 @@ class ActionIter(TreeIter):
         for hist in self._iter_nodes():
             for ev in reversed(hist.actions):
                 yield ev
+
+SimStateHistory.register_default('history', SimStateHistory)
+from .sim_action import SimAction
+from .sim_event import SimEvent

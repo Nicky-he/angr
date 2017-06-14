@@ -1783,7 +1783,7 @@ class CFGAccurate(ForwardAnalysis, CFGBase):    # pylint: disable=abstract-metho
             # Fix the stack pointer (for example, skip the return address on the stack)
             new_sp_addr = sp_addr + self.project.arch.call_sp_fix
 
-            actions = [a for a in state.log.actions if a.bbl_addr == current_run.addr]
+            actions = [a for a in state.history.last_actions if a.bbl_addr == current_run.addr]
 
             for a in actions:
                 if a.type == "mem" and a.action == "read":
@@ -2316,7 +2316,7 @@ class CFGAccurate(ForwardAnalysis, CFGBase):    # pylint: disable=abstract-metho
                     for n in cfg_nodes:
                         if not n.final_states:
                             continue
-                        actions = [ac for ac in n.final_states[0].log.actions
+                        actions = [ac for ac in n.final_states[0].history.last_actions
                                    # Normally it's enough to only use the first final state
                                    if ac.bbl_addr == cl.block_addr and
                                    ac.stmt_idx == cl.stmt_idx
@@ -2568,7 +2568,7 @@ class CFGAccurate(ForwardAnalysis, CFGBase):    # pylint: disable=abstract-metho
 
         function_hints = []
 
-        for action in successor_state.log.actions:
+        for action in successor_state.history.last_actions:
             if action.type == 'reg' and action.offset == self.project.arch.ip_offset:
                 # Skip all accesses to IP registers
                 continue
@@ -3025,7 +3025,7 @@ class CFGAccurate(ForwardAnalysis, CFGBase):    # pylint: disable=abstract-metho
                 suc = all_successors[0]
                 se = suc.se
                 # Examine the path log
-                actions = suc.log.actions
+                actions = suc.history.last_actions
                 sp = se.exactly_int(suc.regs.sp, default=0) + self.project.arch.call_sp_fix
                 for ac in actions:
                     if ac.type == "reg" and ac.action == "write":
@@ -3053,7 +3053,7 @@ class CFGAccurate(ForwardAnalysis, CFGBase):    # pylint: disable=abstract-metho
                         continue
 
                     suc = all_successors[0]
-                    actions = suc.log.actions
+                    actions = suc.history.last_actions
                     for ac in actions:
                         if ac.type == "reg" and ac.action == "read" and ac.offset not in regs_written:
                             regs_read.add(ac.offset)
