@@ -84,7 +84,7 @@ class CallTracingFilter(object):
 
         # If it's a syscall, let's see if the real syscall is inside our whitelist
         if jumpkind.startswith('Ijk_Sys'):
-            call_target_state.scratch.jumpkind = jumpkind
+            call_target_state.history.last_jumpkind = jumpkind
             tmp_path = self.project.factory.path(call_target_state)
             tmp_path.step()
             successors_ = tmp_path.next_run
@@ -331,9 +331,9 @@ class Veritesting(Analysis):
             # Stash all paths that we do not care about
             path_group.stash(
                 filter_func= lambda p: (
-                    p.state.scratch.jumpkind not in
+                    p.state.history.last_jumpkind not in
                     ('Ijk_Boring', 'Ijk_Call', 'Ijk_Ret', 'Ijk_NoHook')
-                    and not p.state.scratch.jumpkind.startswith('Ijk_Sys')
+                    and not p.state.history.last_jumpkind.startswith('Ijk_Sys')
                 ),
                 to_stash="deadended"
             )

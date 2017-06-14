@@ -69,7 +69,7 @@ class AngrObjectFactory(object):
             if addr is not None:
                 state.ip = addr
             if jumpkind is not None:
-                state.scratch.jumpkind = jumpkind
+                state.history.last_jumpkind = jumpkind
 
         r = None
         for engine in engines:
@@ -82,7 +82,7 @@ class AngrObjectFactory(object):
             raise AngrExitError("All engines failed to execute!")
 
         # Peek and fix the IP for syscalls
-        if r.successors and r.successors[0].scratch.jumpkind.startswith('Ijk_Sys'):
+        if r.successors and r.successors[0].history.last_jumpkind.startswith('Ijk_Sys'):
             self._fix_syscall_ip(r.successors[0])
 
         return r

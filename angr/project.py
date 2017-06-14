@@ -697,10 +697,10 @@ class Hook(object):
             2. Return a list of successor states. Each of the states should have the following
                attributes set:
 
-                - `state.history.latest_guard`: a symbolic boolean describing the condition necessary for
+                - `state.history.last_guard`: a symbolic boolean describing the condition necessary for
                   this successor to be taken. A shortcut to the symbolic `True` value is
                   `state.se.true`.
-                - `state.history.latest_jumpkind`: The type of the jump to be taken, as a VEX enum string.
+                - `state.history.last_jumpkind`: The type of the jump to be taken, as a VEX enum string.
                   This will usually be `Ijk_Boring`, which signifies an ordinary jump or branch.
         """
         def inner(function):

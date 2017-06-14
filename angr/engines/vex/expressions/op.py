@@ -41,7 +41,7 @@ class SimIRExpr_Op(SimIRExpr):
             e.bbl_addr = self.state.scratch.bbl_addr
             e.stmt_idx = self.state.scratch.stmt_idx
             e.ins_addr = self.state.scratch.ins_addr
-            e.executed_instruction_count = self.state.scratch.executed_instruction_count
+            e.executed_instruction_count = self.state.history.recent_instruction_count
             raise
 
 class SimIRExpr_Unop(SimIRExpr_Op): pass

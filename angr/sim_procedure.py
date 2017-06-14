@@ -107,7 +107,7 @@ class SimProcedure(object):
         # check to see if this is a syscall and if we should override its return value
         override = None
         if self.is_syscall:
-            state.history.executed_syscall_count = 1
+            state.history.recent_syscall_count = 1
             if len(state.posix.queued_syscall_returns):
                 override = state.posix.queued_syscall_returns.pop(0)
 

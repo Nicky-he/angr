@@ -142,7 +142,7 @@ class VSA_DDG(Analysis):
 
             successing_nodes = self._vfg.graph.successors(node)
             for state in final_states:
-                if state.scratch.jumpkind == 'Ijk_FakeRet' and len(final_states) > 1:
+                if state.history.last_jumpkind == 'Ijk_FakeRet' and len(final_states) > 1:
                     # Skip fakerets if there are other control flow transitions available
                     continue
 

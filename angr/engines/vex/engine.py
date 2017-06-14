@@ -106,7 +106,7 @@ class SimEngineVEX(SimEngine):
     def _process(self, state, successors, irsb=None, skip_stmts=0, last_stmt=99999999, whitelist=None, insn_bytes=None, size=None, num_inst=None, traceflags=0, thumb=False, opt_level=None):
         successors.sort = 'IRSB'
         successors.description = 'IRSB'
-        state.scratch.executed_block_count = 1
+        state.history.recent_block_count = 1
         state.scratch.guard = claripy.true
         state.scratch.sim_procedure = None
         addr = successors.addr
@@ -252,7 +252,7 @@ class SimEngineVEX(SimEngine):
 
         # do return emulation and calless stuff
         for exit_state in list(successors.all_successors):
-            exit_jumpkind = exit_state.scratch.jumpkind
+            exit_jumpkind = exit_state.history.last_jumpkind
             if exit_jumpkind is None: exit_jumpkind = ""
 
             if o.CALLLESS in state.options and exit_jumpkind == "Ijk_Call":
@@ -263,7 +263,7 @@ class SimEngineVEX(SimEngine):
                 exit_state.scratch.target = exit_state.se.BVV(
                     successors.addr + irsb.size, exit_state.arch.bits
                 )
-                exit_state.scratch.jumpkind = "Ijk_Ret"
+                exit_state.history.last_jumpkind = "Ijk_Ret"
                 exit_state.regs.ip = exit_state.scratch.target
 
             elif o.DO_RET_EMULATION in exit_state.options and \

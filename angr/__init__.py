@@ -48,7 +48,7 @@ from . import surveyors
 from .blade import Blade
 from .simos import SimOS
 from .path_group import PathGroup
-from .surveyors.caller import Callable
+from .callable import Callable
 from . import knowledge
 from . import exploration_techniques
 from . import type_backend

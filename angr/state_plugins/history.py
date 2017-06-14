@@ -1,6 +1,6 @@
-import logging
+import operator
 import claripy
-
+import logging
 l = logging.getLogger("angr.state_plugins.history")
 
 from .plugin import SimStatePlugin
@@ -9,39 +9,39 @@ class SimStateHistory(SimStatePlugin):
     This class keeps track of historically-relevant information for paths.
     """
 
-    __slots__ = (
-        'parent', 'merged_from', 'merge_conditions', 'length',
-        'extra_length', '_addrs', '_runstr', '_target', '_guard',
-        '_jumpkind', '_events', '_jump_source', '_jump_avoidable',
-        '_all_constraints', '_fresh_constraints', '_satisfiable',
-        '_state_strong_ref', '_state_weak_ref', '__weakref__'
-    )
-
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, clone=None):
         SimStatePlugin.__init__(self)
 
-        self.parent = parent
-        self.merged_from = [ ]
-        self.merge_conditions = [ ]
-        self._runstr = None
-        self._target = None
-        self._jump_source = None
-        self._jump_avoidable = None
-        self._guard = None
-        self._jumpkind = None
-        self._events = None
-        self._addrs = ()
+        # attributes handling the progeny of this history object
+        self.parent = parent if clone is None else clone.parent
+        self.merged_from = [ ] if clone is None else list(clone.merged_from)
+        self.merge_conditions = [ ] if clone is None else list(clone.merged_conditions)
+        self.depth = (0 if parent is None else parent.length + 1) if clone is None else clone.depth
+        self.extra_depth = (0 if parent is None else parent.extra_depth) if clone is None else clone.depth
 
-        self.length = 0 if parent is None else parent.length + 1
-        self.extra_length = 0 if parent is None else parent.extra_length
+        # a string description of this history
+        self.description = None if clone is None else clone.description
 
-        self.executed_block_count = 0 # the number of blocks that was executed here
-        self.executed_syscall_count = 0 # the number of system calls that was executed here
-        self.executed_instruction_count = -1 # the number of instructions that was executed
+        # the control flow transfer information from this history onwards (to the current state)
+        self.jump_target = None if clone is None else clone.jump_target
+        self.jump_source = None if clone is None else clone.jump_source
+        self.jump_avoidable = None if clone is None else clone.jump_avoidance
+        self.jump_guard = None if clone is None else clone.jump_guard
+        self.jumpkind = None if clone is None else clone.jumpkind
+
+        # the execution log for this history
+        self.recent_events = [ ] if clone is None else list(self.recent_events)
+        self.recent_bbl_addrs = [ ] if clone is None else list(self.recent_bbl_addrs)
+        self.recent_ins_addrs = [ ] if clone is None else list(self.recent_ins_addrs)
+        self.last_stmt_idx = None if clone is None else self.last_stmt_idx
+
+        # numbers of blocks, syscalls, and instructions that were executed in this step
+        self.recent_block_count = 0 if clone is None else clone.recent_block_count
+        self.recent_syscall_count = 0 if clone is None else clone.recent_syscall_count
+        self.recent_instruction_count = -1 if clone is None else clone.recent_instruction_count
 
         # satness stuff
         self._all_constraints = ()
-        self._fresh_constraints = ()
         self._satisfiable = None
 
     def merge(self, others, merge_conditions, common_ancestor=None):
@@ -51,53 +51,9 @@ class SimStateHistory(SimStatePlugin):
         raise Exception('TODO')
 
     def copy(self):
-        c = SimStateHistory()
-        c.parent = self.parent
-        c.merged_from = list(self.merged_from)
-        c.merge_conditions = list(self.merge_conditions)
-        c._runstr = self._runstr
-        c._target = self._target
-        c._jump_source = self._jump_source
-        c._jump_avoidable = self._jump_avoidable
-        c._guard = self._guard
-        c._jumpkind = self._jumpkind
-        c._events = self._events
-        c._addrs = self._addrs
-
-        c.length = self.length
-        c.extra_length = self.extra_length
-
-        c._all_constraints = list(self._all_constraints)
-        c._fresh_constraints = list(self._fresh_constraints)
-        c._satisfiable = self._satisfiable
-
-        c.executed_block_count = self.executed_block_count
-        c.executed_syscall_count = self.executed_syscall_count
-        c.executed_instruction_count = self.executed_instruction_count
-
-        return c
-
-    def __getstate__(self):
-        return [
-            (k, getattr(self, k)) for k in self.__slots__ if k not in
-            ('__weakref__', '_state_weak_ref')
-        ]
-
-    def __setstate__(self, state):
-        for k,v in state:
-            setattr(self, k, v)
+        return SimStateHistory(clone=self)
 
     #def _record_state(self, state, strong_reference=True):
-    #   self._jumpkind = state.scratch.jumpkind
-    #   self._jump_source = state.scratch.source
-    #   self._jump_avoidable = state.scratch.avoidable
-    #   self._target = state.scratch.target
-    #   self._guard = state.scratch.guard
-    #
-    #   if state.scratch.bbl_addr_list is not None:
-    #       self._addrs = state.scratch.bbl_addr_list
-    #   elif state.scratch.bbl_addr is not None:
-    #       self._addrs = [ state.scratch.bbl_addr ]
     #   else:
     #       # state.scratch.bbl_addr may not be initialized as final states from the "flat_successors" list. We need to get
     #       # the value from _target in that case.
@@ -154,70 +110,61 @@ class SimStateHistory(SimStatePlugin):
 
     def add_event(self, event_type, **kwargs):
         new_event = SimEvent(self.state, event_type, **kwargs)
-        self._events.append(new_event)
+        self.recent_events.append(new_event)
 
     def add_action(self, action):
-        self._events.append(action)
+        self.recent_events.append(action)
 
     def extend_actions(self, new_actions):
-        self._events.extend(new_actions)
+        self.recent_events.extend(new_actions)
 
     #
     # Convenient accessors
     #
 
     @property
-    def last_events(self):
-        return ( ev for ev in self._events )
+    def recent_constraints(self):
+        return ( ev.constraint for ev in self.recent_events if isinstance(ev, SimActionConstraint) )
     @property
-    def last_actions(self):
-        return ( ev for ev in self.last_events if isinstance(ev, SimAction) )
-    @property
-    def last_jumpkind(self):
-        return self._jumpkind
-    @property
-    def last_guard(self):
-        return self._guard
-    @property
-    def last_target(self):
-        return self._target
-    @property
-    def last_description(self):
-        return self._runstr
-    @property
-    def last_addr(self):
-        return self._addrs[0]
-    @last_addr.setter
-    def last_addr(self, v):
-        self._addrs = [ v ]
-    @property
-    def last_addrs(self):
-        return self._addrs
+    def recent_actions(self):
+        return ( ev for ev in self.recent_events if isinstance(ev, SimAction) )
 
     @property
-    def parents(self):
+    def weighted_depth(self):
+        return self.depth + self.extra_depth
+
+    @property
+    def lineage(self):
         return HistoryIter(self)
     @property
-    def events(self):
-        return EventIter(self)
+    def parents(self):
+        if self.parent:
+            for p in self.parent.lineage:
+                yield p
     @property
-    def actions(self):
-        return ActionIter(self)
+    def all_events(self):
+        return LambdaIterIter(self, operator.attrgetter('recent_events'))
     @property
-    def jumpkinds(self):
-        return JumpkindIter(self)
+    def all_actions(self):
+        return LambdaIterIter(self, operator.attrgetter('recent_actions'))
     @property
-    def guards(self):
-        return GuardIter(self)
+    def all_jumpkinds(self):
+        return LambdaAttrIter(self, operator.attrgetter('jumpkind'))
     @property
-    def targets(self):
-        return TargetIter(self)
+    def all_jump_guards(self):
+        return LambdaAttrIter(self, operator.attrgetter('jump_guard'))
     @property
-    def descriptions(self):
-        return RunstrIter(self)
+    def all_jump_targets(self):
+        return LambdaAttrIter(self, operator.attrgetter('jump_target'))
     @property
-    def addrs(self):
-        return AddrIter(self)
+    def all_descriptions(self):
+        return LambdaAttrIter(self, operator.attrgetter('description'))
+    @property
+    def all_bbl_addrs(self):
+        return LambdaIterIter(self, operator.attrgetter('recent_bbl_addrs'))
+    @property
+    def all_ins_addrs(self):
+        return LambdaIterIter(self, operator.attrgetter('recent_ins_addrs'))
 
     #
     # Merging support
@@ -273,7 +220,7 @@ class SimStateHistory(SimStatePlugin):
         constraints = [ ]
         cur = self
         while cur is not other and cur is not None:
-            constraints.extend(cur._fresh_constraints)
+            constraints.extend(cur.recent_constraints)
             cur = cur.parent
         return constraints
 
@@ -334,48 +281,28 @@ class HistoryIter(TreeIter):
         for hist in self._iter_nodes():
             yield hist
 
-class AddrIter(TreeIter):
+class LambdaAttrIter(TreeIter):
+    def __init__(self, start, f, **kwargs):
+        TreeIter.__init__(self, start, f, **kwargs)
+        self._f = f
+
     def __reversed__(self):
         for hist in self._iter_nodes():
-            for a in reversed(hist._addrs):
+            a = self._f(hist)
+            if a is not None:
                 yield a
 
-class RunstrIter(TreeIter):
-    def __reversed__(self):
-        for hist in self._iter_nodes():
-            if hist._runstr is not None:
-                yield hist._runstr
+class LambdaIterIter(LambdaAttrIter):
+    def __init__(self, start, f, reverse=True, **kwargs):
+        LambdaAttrIter.__init__(self, start, f, **kwargs)
+        self._f = f
+        self._reverse = reverse
 
-class TargetIter(TreeIter):
     def __reversed__(self):
         for hist in self._iter_nodes():
-            if hist._target is not None:
-                yield hist._target
-
-class GuardIter(TreeIter):
-    def __reversed__(self):
-        for hist in self._iter_nodes():
-            if hist._guard is not None:
-                yield hist._guard
-
-class JumpkindIter(TreeIter):
-    def __reversed__(self):
-        for hist in self._iter_nodes():
-            if hist._jumpkind is not None:
-                yield hist._jumpkind
-
-class EventIter(TreeIter):
-    def __reversed__(self):
-        for hist in self._iter_nodes():
-            for ev in reversed(hist.events):
-                yield ev
-
-class ActionIter(TreeIter):
-    def __reversed__(self):
-        for hist in self._iter_nodes():
-            for ev in reversed(hist.actions):
-                yield ev
+            for a in reversed(self._f(hist)) if self._reverse else self._f(hist):
+                yield a
 
 SimStateHistory.register_default('history', SimStateHistory)
-from .sim_action import SimAction
+from .sim_action import SimAction, SimActionConstraint
 from .sim_event import SimEvent

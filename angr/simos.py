@@ -430,7 +430,7 @@ class SimOS(object):
         state.scratch.ins_addr = addr
         state.scratch.bbl_addr = addr
         state.scratch.stmt_idx = 0
-        state.scratch.jumpkind = 'Ijk_Boring'
+        state.history.last_jumpkind = 'Ijk_Boring'
 
         state.procedure_data.hook_addr = self.continue_addr
         return state
