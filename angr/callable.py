@@ -78,4 +78,4 @@ class Callable(object):
             caller_end = caller_end_unmerged.merge()
             self.result_state = caller_end.active[0].state
 
-from ..errors import AngrCallableError, AngrCallableMultistateError
+from .errors import AngrCallableError, AngrCallableMultistateError

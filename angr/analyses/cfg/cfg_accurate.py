@@ -15,7 +15,6 @@ from ...engines import SimEngineProcedure
 from ...sim_state import SimState
 from ...errors import AngrCFGError, AngrError, AngrSkipJobNotice, SimError, SimValueError, SimSolverModeError, \
     SimFastPathError, SimIRSBError
-from ...path import Path
 from ..forward_analysis import ForwardAnalysis
 from .cfg_job_base import BlockID, CFGJobBase
 from .cfg_base import CFGBase
@@ -784,7 +783,7 @@ class CFGAccurate(ForwardAnalysis, CFGBase):    # pylint: disable=abstract-metho
                 elif isinstance(item, (int, long)):
                     new_starts.append((item, None))
 
-                elif isinstance(item, (SimState, Path)):
+                elif isinstance(item, SimState):
                     new_starts.append(item)
 
                 else:
@@ -849,15 +848,6 @@ class CFGAccurate(ForwardAnalysis, CFGBase):    # pylint: disable=abstract-metho
                 state = item.copy()  # pylint: disable=no-member
                 ip = state.se.exactly_int(state.ip)
                 state.set_mode('fastpath')
-
-            elif isinstance(item, Path):
-                # angr.Path
-                # now we can get a usable callstack from it
-                path = item
-                state = path.state.copy()  # pylint: disable=no-member
-                state.set_mode('fastpath')
-                ip = path.addr  # pylint: disable=no-member
-                callstack = path.callstack  # pylint: disable=no-member
 
             self._symbolic_function_initial_state[ip] = state
 
