@@ -196,16 +196,18 @@ class Slicecutor(Surveyor):
     def done(self):
         return (len(self.active) + len(self._merge_countdowns)) == 0
 
-    def _step_state(self, p):  #pylint:disable=no-self-use
+    def _step_path(self, p):  #pylint:disable=no-self-use
         if p._last_stmt is not None:
-            p.step(whitelist=p._whitelist, last_stmt=p._last_stmt)
+            return self._project.successors(p, whitelist=p._whitelist, last_stmt=p._last_stmt)
         else:
-            p.step(whitelist=p._whitelist)
+            return self._project.successors(p, whitelist=p._whitelist)
 
     def path_comparator(self, a, b):
         if a.weighted_length != b.weighted_length:
             return b.weighted_length - a.weighted_length
-        return a.addr_trace.count(a.addr_trace[-1]) - b.addr_trace.count(b.addr_trace[-1])
+        a_len = a.history.bbl_addrs.hardcopy.count(a.history.bbl_addrs[-1])
+        b_len = b.history.bbl_addrs.hardcopy.count(b.history.bbl_addrs[-1])
+        return a_len - b_len
         #return self._annotated_cfg.path_priority(a) - self._annotated_cfg.path_priority(b)
 
     def __repr__(self):
