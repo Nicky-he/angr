@@ -6,6 +6,8 @@ import logging
 import weakref
 import functools
 
+from .sim_state import SimState
+
 l = logging.getLogger("angr.surveyor")
 
 #
@@ -120,6 +122,7 @@ class Surveyor(object):
 
     # TODO: what about errored? It's a problem cause those paths are duplicates, and could cause confusion...
     path_lists = ['active', 'deadended', 'spilled', 'errored', 'unconstrained', 'suspended', 'pruned' ]
+
     def __init__(self, project, start=None, max_active=None, max_concurrency=None, pickle_paths=None,
                  save_deadends=None, enable_veritesting=False, veritesting_options=None, keep_pruned=None):
         """
@@ -157,9 +160,9 @@ class Surveyor(object):
 
         self.split_paths = {}
         self._current_step = 0
-        self._hierarchy = PathHierarchy()
+        self._hierarchy = StateHierarchy()
 
-        if isinstance(start, Path):
+        if isinstance(start, SimState):
             self.active.append(start)
         elif isinstance(start, (tuple, list, set)):
             self.active.extend(start)
@@ -286,21 +289,21 @@ class Surveyor(object):
         #       p = future_to_path[future]
         #       successors = future.result()
 
-        for p in self.active:
-            if p.errored:
-                if isinstance(p.error, PathUnreachableError):
+        for state in self.active:
+            if state.errored:
+                if isinstance(state.error, PathUnreachableError):
                     if self._keep_pruned:
-                        self.pruned.append(p)
+                        self.pruned.append(state)
                 else:
-                    self._hierarchy.unreachable_path(p)
+                    self._hierarchy.unreachable_state(state)
                     self._hierarchy.simplify()
-                    self.errored.append(p)
+                    self.errored.append(state)
                 continue
-            self._step_path(p)
-            if len(p.successors) == 0 and len(p.unconstrained_successor_states) == 0:
-                l.debug("Path %s has deadended.", p)
-                self.suspend_path(p)
-                self.deadended.append(p)
+            self._step_state(state)
+            if len(state.successors) == 0 and len(state.unconstrained_successor_states) == 0:
+                l.debug("Path %s has deadended.", state)
+                self.suspend_path(state)
+                self.deadended.append(state)
             else:
                 if self._enable_veritesting: # and len(p.successors) > 1:
                     # Try to use Veritesting!
@@ -311,11 +314,11 @@ class Surveyor(object):
                             boundaries.extend(list(self._find))
                         if self._avoid is not None:
                             boundaries.extend(list(self._avoid))
-                        veritesting = self._project.analyses.Veritesting(p,
+                        veritesting = self._project.analyses.Veritesting(state,
                                                                          boundaries=boundaries,
                                                                          **self._veritesting_options)
                     else:
-                        veritesting = self._project.analyses.Veritesting(p,
+                        veritesting = self._project.analyses.Veritesting(state,
                                                                          **self._veritesting_options)
                     if veritesting.result and veritesting.final_path_group:
                         pg = veritesting.final_path_group
@@ -324,22 +327,22 @@ class Surveyor(object):
                         successors = pg.successful + pg.deviated
                         for suc in successors:
                             l.info('Veritesting yields a new IP: 0x%x', suc.addr)
-                        successors = self._tick_path(p, successors=successors)
+                        successors = self._tick_path(state, successors=successors)
 
                     else:
-                        successors = self.tick_path(p)
+                        successors = self.tick_path(state)
 
                 else:
-                    successors = self.tick_path(p)
+                    successors = self.tick_path(state)
                 new_active.extend(successors)
 
-            if len(p.unconstrained_successor_states) > 0:
-                self.unconstrained.append(p)
+            if len(state.unconstrained_successor_states) > 0:
+                self.unconstrained.append(state)
 
         self.active = new_active
         return self
 
-    def _step_path(self, p):  #pylint:disable=no-self-use
+    def _step_state(self, p):  #pylint:disable=no-self-use
         p.step()
 
     def _tick_path(self, p, successors=None):
@@ -493,6 +496,5 @@ class Surveyor(object):
         return p
 
 from .errors import AngrError, PathUnreachableError
-#from .path import Path
-#from .path_hierarchy import PathHierarchy
+from .state_hierarchy import StateHierarchy
 from .surveyors import all_surveyors
